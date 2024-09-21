@@ -1,8 +1,12 @@
 package com.example.modul2
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,12 +38,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 
 class MainActivity : ComponentActivity() {
@@ -58,13 +67,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen() {
     var text by remember { mutableStateOf("") }
     var inputText by remember { mutableStateOf("") }
     var textNIM by remember { mutableStateOf("") }
     var inputTextNIM by remember { mutableStateOf("") }
+
+    val isFormFilled = inputText.isNotEmpty() && inputTextNIM.isNotEmpty()
+    val context = LocalContext.current
 
     Scaffold { innerPadding ->
         Column(
@@ -131,10 +143,29 @@ fun MainScreen() {
             Spacer(modifier = Modifier.height(24.dp))
 
             ElevatedButton(
-                onClick = { text = "Nama: $inputText\nNIM: $inputTextNIM" },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.elevatedButtonColors(
+                onClick = {
+                    Log.d("ButtonDebug", "onClick triggered")
+                    if (isFormFilled) {
+                        text = "Nama: $inputText\nNIM: $inputTextNIM"
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            Log.d("ButtonDebug", "onLongPress triggered")
+                            if (isFormFilled) {
+                                Toast.makeText(context, "Nama: $inputText\nNIM: $inputTextNIM", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Isi form terlebih dahulu", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                },
+                enabled = isFormFilled,
+                colors = if (isFormFilled) ButtonDefaults.elevatedButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary
+                ) else ButtonDefaults.elevatedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                 )
             ) {
                 Text(

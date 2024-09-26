@@ -1,9 +1,11 @@
 package com.example.modul2
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,8 +22,11 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class ListActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -30,6 +35,7 @@ class ListActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen() {
@@ -40,12 +46,21 @@ fun ListScreen() {
 
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val dayOrder = listOf("Senin", "Selasa", "Rabu", "Kamis", "Jumat")
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             try {
                 val result = firestore.collection("matkul").get().await()
+                val formatter = DateTimeFormatter.ofPattern("HH:mm")
                 matkulList = result.toObjects(Matkul::class.java)
+                    .sortedWith(compareBy(
+                        { dayOrder.indexOf(it.hari) },
+                        {
+                            val startTime = it.jam.split(" - ")[0]
+                            LocalTime.parse(startTime, formatter)
+                        }
+                    ))
                 isLoading = false
             } catch (e: Exception) {
                 error = e.message

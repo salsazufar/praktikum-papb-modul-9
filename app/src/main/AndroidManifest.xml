@@ -26,6 +26,9 @@
         <activity
             android:name=".ListActivity"
             android:exported="false" />
+        <activity
+            android:name=".GithubProfileActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

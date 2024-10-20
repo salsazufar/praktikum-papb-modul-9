@@ -15,20 +15,17 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.Modul2">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
-            android:name=".ListActivity"
-            android:exported="false" />
-        <activity
-            android:name=".GithubProfileActivity"
-            android:exported="false" />
+            android:name=".AuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Modul2" />
     </application>
 
 </manifest>

@@ -1,50 +1,34 @@
-package com.example.modul2
+package com.example.modul2.screen
 
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.ExitToApp
-//import androidx.compose.material.icons.filled.GitHub
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.modul2.R
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
-
-class ListActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            ListScreen()
-        }
-    }
-}
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListScreen() {
+fun MatkulScreen(
+    onNavigateToProfile: () -> Unit,
+    onLogout: () -> Unit
+) {
     val firestore = FirebaseFirestore.getInstance()
     var matkulList by remember { mutableStateOf<List<Matkul>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val githubIcon: Painter = painterResource(id = R.drawable.github)
+    val githubIcon = painterResource(id = R.drawable.github)
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
@@ -64,21 +48,15 @@ fun ListScreen() {
             TopAppBar(
                 title = { Text("Daftar Mata Kuliah") },
                 actions = {
-                    IconButton(onClick = {
-                        context.startActivity(Intent(context, GithubProfileActivity::class.java))
-                    }) {
+                    IconButton(onClick = onNavigateToProfile) {
                         Icon(
                             painter = githubIcon,
                             contentDescription = "GitHub Profile",
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    IconButton(onClick = {
-                        FirebaseAuth.getInstance().signOut()
-                        context.startActivity(Intent(context, MainActivity::class.java))
-                        (context as? ComponentActivity)?.finish()
-                    }) {
-                        Icon(Icons.Filled.ExitToApp, contentDescription = "Logout")
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
                 }
             )
@@ -134,14 +112,4 @@ fun MatkulCard(matkul: Matkul) {
             Text(text = if (matkul.praktikum) "Praktikum" else "Teori")
         }
     }
-}
-
-@Composable
-fun GitHubIcon() {
-    val githubIcon: Painter = painterResource(id = R.drawable.github)
-    Icon(
-        painter = githubIcon,
-        contentDescription = "GitHub Profile",
-        modifier = Modifier.size(48.dp)
-    )
 }

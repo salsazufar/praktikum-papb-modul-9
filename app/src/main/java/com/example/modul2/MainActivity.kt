@@ -1,133 +1,133 @@
 package com.example.modul2
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.modul2.navigation.NavigationItem
+import com.example.modul2.navigation.Screen
+import com.example.modul2.screen.MatkulScreen
+import com.example.modul2.screen.ProfileScreen
+import com.example.modul2.screen.TugasScreen
 import com.example.modul2.ui.theme.Modul2Theme
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.ui.text.input.VisualTransformation
-
 
 class MainActivity : ComponentActivity() {
+    private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        auth = FirebaseAuth.getInstance()
+
+        checkAuthAndShowAppropriateScreen()
+    }
+
+    private fun checkAuthAndShowAppropriateScreen() {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            showMainScreen()
+        } else {
+            startAuthActivity()
+        }
+    }
+
+    private fun showMainScreen() {
         setContent {
             Modul2Theme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen()
+                    MainActivityContent(
+                        onLogout = {
+                            auth.signOut()
+                            checkAuthAndShowAppropriateScreen()
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun startAuthActivity() {
+        val intent = Intent(this, AuthActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+}
+
+@Composable
+fun MainActivityContent(
+    onLogout: () -> Unit,
+    navController: NavHostController = rememberNavController(),
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+) {
+    Scaffold(
+        bottomBar = { BottomAppBar(navController) },
+        modifier = modifier
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Matkul.route
+            ) {
+                composable(Screen.Matkul.route) {
+                    MatkulScreen(
+                        onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                        onLogout = onLogout
+                    )
+                }
+                composable(Screen.Tugas.route) {
+                    TugasScreen(onNavigateBack = { navController.navigateUp() })
+                }
+                composable(Screen.Profile.route) {
+                    ProfileScreen(onNavigateBack = { navController.navigateUp() })
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
-    var email by remember { mutableStateOf("") }
-    var nim by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val isFormFilled = email.isNotEmpty() && nim.isNotEmpty()
-    val context = LocalContext.current
-    var isPasswordVisible by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun BottomAppBar(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    NavigationBar(
+        modifier = modifier
     ) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Filled.AccountCircle,
-                    contentDescription = "Email Icon"
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+        val navigationItems = listOf(
+            NavigationItem("Matkul", Screen.Matkul.icon, Screen.Matkul),
+            NavigationItem("Tugas", Screen.Tugas.icon, Screen.Tugas),
+            NavigationItem("Profile", Screen.Profile.icon, Screen.Profile)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = nim,
-            onValueChange = { if (it.all { char -> char.isDigit() }) nim = it },
-            label = { Text("Password") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon"
-                )
-            },
-            trailingIcon = {
-                Icon(
-                    imageVector = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                    contentDescription = if (isPasswordVisible) "Hide password" else "Show password",
-                    modifier = Modifier.clickable {
-                        isPasswordVisible = !isPasswordVisible
-                    }
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                isLoading = true
-                CoroutineScope(Dispatchers.Main).launch {
-                    try {
-                        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, nim).await()
-                        context.startActivity(Intent(context, ListActivity::class.java))
-                        (context as? ComponentActivity)?.finish()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Login failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                    } finally {
-                        isLoading = false
+        navigationItems.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = null) },
+                label = { Text(item.title) },
+                selected = false,
+                onClick = {
+                    navController.navigate(item.screen.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        restoreState = true
+                        launchSingleTop = true
                     }
                 }
-            },
-            enabled = isFormFilled && !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Login")
-            }
+            )
         }
     }
 }

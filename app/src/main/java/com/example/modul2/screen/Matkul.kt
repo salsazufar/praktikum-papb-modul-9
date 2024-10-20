@@ -8,7 +8,7 @@
 //    val ruang : String
 //)
 
-package com.example.modul2
+package com.example.modul2.screen
 
 import com.google.firebase.firestore.PropertyName
 

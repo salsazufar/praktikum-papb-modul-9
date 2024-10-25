@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    id("com.google.devtools.ksp")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -64,13 +66,19 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.androidx.constraintlayout.compose)
-    implementation ("androidx.compose.ui:ui-tooling-preview:1.5.0")
+//    implementation ("androidx.compose.ui:ui-tooling-preview:1.5.0")
     implementation ("androidx.compose.material:material-icons-core:1.5.0")
     implementation ("androidx.compose.material:material-icons-extended:1.5.0")
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("io.coil-kt:coil-compose:2.2.2")
     implementation(libs.androidx.navigation.compose)
+//    implementation(libs.androidx.room.common)
+    implementation (libs.androidx.room.room.runtime)
+//    implementation(libs.mediation.test.suite)
+    implementation(libs.androidx.runtime.livedata)
+//    implementation(libs.androidx.ui.desktop)
+    ksp(libs.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,4 +86,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
 }

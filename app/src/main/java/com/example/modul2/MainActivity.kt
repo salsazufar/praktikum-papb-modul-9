@@ -1,6 +1,7 @@
 package com.example.modul2
 
 import android.annotation.SuppressLint
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -23,6 +26,7 @@ import com.example.modul2.screen.ProfileScreen
 import com.example.modul2.screen.TugasScreen
 import com.example.modul2.ui.theme.Modul2Theme
 import com.google.firebase.auth.FirebaseAuth
+import com.example.modul2.data.model.local.TugasRepository
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -54,7 +58,8 @@ class MainActivity : ComponentActivity() {
                         onLogout = {
                             auth.signOut()
                             checkAuthAndShowAppropriateScreen()
-                        }
+                        },
+                        tugasRepository = (application as MyApplication).tugasRepository
                     )
                 }
             }
@@ -70,6 +75,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainActivityContent(
+    tugasRepository: TugasRepository,
     onLogout: () -> Unit,
     navController: NavHostController = rememberNavController(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
@@ -90,7 +96,10 @@ fun MainActivityContent(
                     )
                 }
                 composable(Screen.Tugas.route) {
-                    TugasScreen(onNavigateBack = { navController.navigateUp() })
+                    TugasScreen(
+                        tugasRepository = tugasRepository,
+                        onNavigateBack = { navController.navigateUp() }
+                    )
                 }
                 composable(Screen.Profile.route) {
                     ProfileScreen(onNavigateBack = { navController.navigateUp() })
@@ -129,5 +138,14 @@ private fun BottomAppBar(
                 }
             )
         }
+    }
+}
+
+class MyApplication : Application() {
+    lateinit var tugasRepository: TugasRepository
+
+    override fun onCreate() {
+        super.onCreate()
+        tugasRepository = TugasRepository(this)
     }
 }

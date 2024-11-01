@@ -20,8 +20,7 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatkulScreen(
-    onNavigateToProfile: () -> Unit,
-    onLogout: () -> Unit
+    onNavigateToProfile: () -> Unit
 ) {
     val firestore = FirebaseFirestore.getInstance()
     var matkulList by remember { mutableStateOf<List<Matkul>>(emptyList()) }
@@ -55,9 +54,9 @@ fun MatkulScreen(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
-                    }
+//                    IconButton(onClick = onLogout) {
+//                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+//                    }
                 }
             )
         }

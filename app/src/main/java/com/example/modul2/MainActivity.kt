@@ -2,7 +2,6 @@ package com.example.modul2
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,9 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -24,27 +21,13 @@ import com.example.modul2.navigation.Screen
 import com.example.modul2.screen.MatkulScreen
 import com.example.modul2.screen.ProfileScreen
 import com.example.modul2.ui.theme.Modul2Theme
-import com.google.firebase.auth.FirebaseAuth
 import com.example.modul2.data.model.local.TugasRepository
 import com.example.modul2.screen.TugasScreen
 
 class MainActivity : ComponentActivity() {
-    private lateinit var auth: FirebaseAuth
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        auth = FirebaseAuth.getInstance()
-
-        checkAuthAndShowAppropriateScreen()
-    }
-
-    private fun checkAuthAndShowAppropriateScreen() {
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            showMainScreen()
-        } else {
-            startAuthActivity()
-        }
+        showMainScreen()
     }
 
     private fun showMainScreen() {
@@ -55,28 +38,17 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainActivityContent(
-                        onLogout = {
-                            auth.signOut()
-                            checkAuthAndShowAppropriateScreen()
-                        },
                         tugasRepository = (application as MyApplication).tugasRepository
                     )
                 }
             }
         }
     }
-
-    private fun startAuthActivity() {
-        val intent = Intent(this, AuthActivity::class.java)
-        startActivity(intent)
-        finish()
-    }
 }
 
 @Composable
 fun MainActivityContent(
     tugasRepository: TugasRepository,
-    onLogout: () -> Unit,
     navController: NavHostController = rememberNavController(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
@@ -91,8 +63,7 @@ fun MainActivityContent(
             ) {
                 composable(Screen.Matkul.route) {
                     MatkulScreen(
-                        onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                        onLogout = onLogout
+                        onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
                     )
                 }
                 composable(Screen.Tugas.route) {

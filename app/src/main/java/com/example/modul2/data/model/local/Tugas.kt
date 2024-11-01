@@ -18,6 +18,8 @@ class Tugas (
     var detail_tugas: String,
     @ColumnInfo(name = "selesai")
     var selesai: Boolean,
+    @ColumnInfo(name = "imagePath")
+    var imagePath: String?
     ) : Parcelable
 
 

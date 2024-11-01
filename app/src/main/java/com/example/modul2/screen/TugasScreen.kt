@@ -1,9 +1,12 @@
 package com.example.modul2.screen
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,20 +26,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberImagePainter
 import com.example.modul2.data.model.local.Tugas
 import com.example.modul2.data.model.local.TugasRepository
 import com.example.modul2.viewmodel.TugasViewModel
 import com.example.modul2.viewmodel.TugasViewModelFactory
 import kotlinx.coroutines.launch
+import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TugasScreen(
     tugasRepository: TugasRepository,
@@ -48,11 +54,31 @@ fun TugasScreen(
     val listTugas by tugasViewModel.listTugas.observeAsState(emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
-    // Memisahkan tugas yang selesai dan belum selesai
-    val ongoingTasks = listTugas.filter { !it.selesai }
-    val completedTasks = listTugas.filter { it.selesai }
+    var imagePath by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    var previewImagePath by remember { mutableStateOf<String?>(null) }
     var isCompletedVisible by remember { mutableStateOf(true) }
+
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+            bitmap?.let {
+                val file = File(context.filesDir, "task_${System.currentTimeMillis()}.jpg")
+                file.outputStream()
+                    .use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out) }
+                imagePath = Uri.fromFile(file)
+            }
+        }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launcher.launch()
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Camera permission is required")
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -60,30 +86,66 @@ fun TugasScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Spacer(modifier = Modifier.height(30.dp))
-            TextField(
-                value = matkul,
-                onValueChange = { matkul = it },
-                label = { Text("Nama Matkul") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
-            TextField(
-                value = detail_tugas,
-                onValueChange = { detail_tugas = it },
-                label = { Text("Detail Tugas") },
-                modifier = Modifier.fillMaxWidth()
+        TextField(
+            value = matkul,
+            onValueChange = { matkul = it },
+            label = { Text("Nama Mata Kuliah") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextField(
+            value = detail_tugas,
+            onValueChange = { detail_tugas = it },
+            label = { Text("Detail Tugas") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        imagePath?.let { uri ->
+            Image(
+                painter = rememberImagePainter(uri),
+                contentDescription = "Tugas Image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(color = Color.Gray)
+                    .padding(9.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.CAMERA
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        launcher.launch()
+                    } else {
+                        cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Ambil Gambar")
+            }
 
             Button(
                 onClick = {
                     if (matkul.text.isNotEmpty() && detail_tugas.text.isNotEmpty()) {
-                        tugasViewModel.addTugas(matkul.text, detail_tugas.text)
+                        tugasViewModel.addTugas(matkul.text, detail_tugas.text, imagePath?.path)
                         scope.launch {
-                            snackbarHostState.showSnackbar("Tugas berhasil ditambahkan")
+                            snackbarHostState.showSnackbar("Tugas Ditambahkan")
                         }
                         matkul = TextFieldValue("")
                         detail_tugas = TextFieldValue("")
@@ -93,76 +155,82 @@ fun TugasScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             ) {
                 Text(text = "Tambah Tugas")
             }
-            SnackbarHost(hostState = snackbarHostState)
+        }
+        SnackbarHost(hostState = snackbarHostState)
 
-            Spacer(modifier = Modifier.height(16.dp))
+        if (listTugas.isNotEmpty()) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                // Tugas yang belum selesai
+                items(listTugas.filter { !it.selesai }) { tugas ->
+                    TugasItem(
+                        tugas = tugas,
+                        onComplete = { completed ->
+                            tugasViewModel.updateTugasCompletion(tugas.id, completed)
+                        },
+                        isCompleted = false,
+                        onDelete = null,
+                        onPreviewImage = { imagePath -> previewImagePath = imagePath }
+                    )
+                }
 
-            if (listTugas.isNotEmpty()) {
-                LazyColumn {
-                    // Tugas yang belum selesai
-                    items(ongoingTasks) { tugas ->
-                        TugasItem(
-                            tugas = tugas,
-                            onDoneClicked = { done ->
-                                tugasViewModel.updateTugasCompletion(tugas.id, done)
-                            }
-                        )
+                // Section Selesai
+                if (listTugas.any { it.selesai }) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isCompletedVisible = !isCompletedVisible }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Selesai (${listTugas.count { it.selesai }})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Toggle completed",
+                                modifier = Modifier.rotate(if (isCompletedVisible) 180f else 0f)
+                            )
+                        }
                     }
 
-                    // Section Selesai
-                    if (completedTasks.isNotEmpty()) {
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { isCompletedVisible = !isCompletedVisible }
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Selesai (${completedTasks.size})",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Toggle completed",
-                                    modifier = Modifier.rotate(if (isCompletedVisible) 180f else 0f)
-                                )
-                            }
-                        }
-
-                        // Tugas yang sudah selesai
-                        if (isCompletedVisible) {
-                            items(completedTasks) { tugas ->
-                                TugasItem(
-                                    tugas = tugas,
-                                    onDoneClicked = { done ->
-                                        tugasViewModel.updateTugasCompletion(tugas.id, done)
-                                    },
-                                    isCompleted = true,
-                                    onDeleteClick = {
-                                        // Implementasi hapus tugas
-                                        tugasViewModel.deleteTugas(tugas.id)
-                                    }
-                                )
-                            }
+                    if (isCompletedVisible) {
+                        items(listTugas.filter { it.selesai }) { tugas ->
+                            TugasItem(
+                                tugas = tugas,
+                                onComplete = { completed ->
+                                    tugasViewModel.updateTugasCompletion(tugas.id, completed)
+                                },
+                                isCompleted = true,
+                                onDelete = {
+                                    tugasViewModel.deleteTugas(tugas.id)
+                                },
+                                onPreviewImage = { imagePath -> previewImagePath = imagePath }
+                            )
                         }
                     }
                 }
-            } else {
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Tidak ada tugas yang ditambahkan",
-                    fontSize = 16.sp
-                )
+            }
+        } else {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                text = "Mulai Tambahkan Tugas!",
+                fontSize = 16.sp
+            )
+        }
+
+        previewImagePath?.let { uri ->
+            ImagePreviewDialog(uri) {
+                previewImagePath = null
             }
         }
     }
@@ -171,9 +239,10 @@ fun TugasScreen(
 @Composable
 fun TugasItem(
     tugas: Tugas,
-    onDoneClicked: (Boolean) -> Unit,
-    isCompleted: Boolean = false,
-    onDeleteClick: (() -> Unit)? = null
+    onComplete: (Boolean) -> Unit,
+    isCompleted: Boolean,
+    onDelete: (() -> Unit)?,
+    onPreviewImage: (String) -> Unit
 ) {
     var isDone by remember { mutableStateOf(tugas.selesai) }
     val checkboxColor = if (isDone) MaterialTheme.colorScheme.primary else Color.Gray
@@ -181,7 +250,8 @@ fun TugasItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { tugas.imagePath?.let { onPreviewImage(it) } },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDone) Color(0xFFEEEEEE) else MaterialTheme.colorScheme.surface,
@@ -204,7 +274,7 @@ fun TugasItem(
                     .background(if (isDone) checkboxColor else Color.Transparent)
                     .clickable {
                         isDone = !isDone
-                        onDoneClicked(isDone)
+                        onComplete(isDone)
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -237,9 +307,9 @@ fun TugasItem(
                 }
             }
 
-            if (isCompleted && onDeleteClick != null) {
+            if (isCompleted && onDelete != null) {
                 IconButton(
-                    onClick = onDeleteClick,
+                    onClick = onDelete,
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
@@ -252,3 +322,29 @@ fun TugasItem(
         }
     }
 }
+
+@Composable
+fun ImagePreviewDialog(imageUri: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Close")
+            }
+        },
+        text = {
+            Image(
+                painter = rememberImagePainter(imageUri),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+                    .clip(RoundedCornerShape(10.dp))
+            )
+        }
+    )
+}
+
+
+
+

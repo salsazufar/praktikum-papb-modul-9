@@ -5,26 +5,24 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Tugas::class], version = 1)
-abstract class TugasDB: RoomDatabase() {
+@Database(entities = [Tugas::class], version = 2)
+abstract class TugasDB : RoomDatabase() {
     abstract fun tugasDAO(): TugasDAO
 
-    companion object {
+    companion object{
         @Volatile
-        private var INSTANCE: TugasDB? = null
-
+        private var NAME : TugasDB? = null
         @JvmStatic
         fun getDatabase(context: Context): TugasDB {
-            if (INSTANCE == null) {
-                synchronized(TugasDB::class.java) {
-                    INSTANCE = Room.databaseBuilder(
-                        context.applicationContext,
-                        TugasDB::class.java, "tugas_database"
-                    )
+            if(NAME == null) {
+                synchronized(TugasDB::class.java){
+                    NAME = Room.databaseBuilder(context.applicationContext,
+                        TugasDB::class.java, "tugas_db")
+                        .fallbackToDestructiveMigration()
                         .build()
                 }
             }
-            return INSTANCE as TugasDB
+            return NAME as TugasDB
         }
     }
 }

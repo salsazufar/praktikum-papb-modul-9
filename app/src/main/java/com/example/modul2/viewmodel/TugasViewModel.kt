@@ -2,6 +2,7 @@ package com.example.modul2.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.example.modul2.data.model.local.Tugas
 import com.example.modul2.data.model.local.TugasRepository
@@ -11,8 +12,9 @@ class TugasViewModel(private val tugasRepository: TugasRepository) : ViewModel()
 
     val listTugas: LiveData<List<Tugas>> = tugasRepository.getAllTugas()
 
-    fun addTugas(matkul: String, detail_tugas: String) {
-        val newTugas = Tugas(matkul = matkul, detail_tugas = detail_tugas, selesai = false)
+
+    fun addTugas(matkul: String, detail_tugas: String, imagePath: String?) {
+        val newTugas = Tugas(matkul = matkul, detail_tugas = detail_tugas, selesai = false, imagePath = imagePath)
         viewModelScope.launch {
             tugasRepository.insert(newTugas)
         }

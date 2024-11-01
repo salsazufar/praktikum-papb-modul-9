@@ -23,10 +23,10 @@ import com.example.modul2.navigation.NavigationItem
 import com.example.modul2.navigation.Screen
 import com.example.modul2.screen.MatkulScreen
 import com.example.modul2.screen.ProfileScreen
-import com.example.modul2.screen.TugasScreen
 import com.example.modul2.ui.theme.Modul2Theme
 import com.google.firebase.auth.FirebaseAuth
 import com.example.modul2.data.model.local.TugasRepository
+import com.example.modul2.screen.TugasScreen
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
